@@ -55,9 +55,8 @@
 
 
 ## About The Project
-
-A template for a DayZ PBO Packer, written in python.
-Has the bare minimum to have a working, non obfuscated PBO made.
+A template for a DayZ PBO Packer, written in python. Has the bare minimum to have a working, non obfuscated PBO made.
+I personally do not recommend writing a full packer in python, but if you are confident with python and have enough time, it's possible.
 
 
 <!-- LICENSE -->
