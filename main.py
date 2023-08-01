@@ -1,146 +1,132 @@
 import os
 import sys
-import pprint
 import struct
 from datetime import datetime
 
-#we need a default location set
 
 class PackingUtils:
-    
-    @staticmethod
-    def int_to_bytes(i: int, *, signed: bool = False) -> bytes:
-        length = ((i + ((i * signed) < 0)).bit_length() + 7 + signed) // 8
-        return i.to_bytes(length, byteorder='big', signed=signed)
-    
     @staticmethod
     def writeStr(pbo, string):
-        pbo.write(str(string).encode('utf-8'))
-        PackingUtils.writeNull(pbo)
-
+        try:
+            pbo.write(str(string).encode('utf-8'))
+            PackingUtils.writeNull(pbo)
+        except Exception as e:
+            print(f"Error writing string to PBO: {e}")
+            sys.exit(1)
+            
     @staticmethod
     def writeNull(pbo):
-        pbo.write(struct.pack('x'))
-
+        try:
+            pbo.write(struct.pack('x'))
+        except Exception as e:
+            print(f"Error writing null to PBO: {e}")
+            sys.exit(1)
+        
     @staticmethod
     def writeInt(pbo, num):
-        pbo.write(num.to_bytes(4, byteorder='little'))
-    
+        try:
+            pbo.write(num.to_bytes(4, byteorder='little'))
+        except Exception as e:
+            print(f"Error writing integer to PBO: {e}")
+            sys.exit(1)
+        
     @staticmethod
     def writeUInt(pbo, num):
-        pbo.write(num.to_bytes(4, byteorder='litte'))
-    
+        try:
+            pbo.write(num.to_bytes(4, byteorder='little'))
+        except Exception as e:
+            print(f"Error writing unsigned integer to PBO: {e}")
+            sys.exit(1)
+        
     @staticmethod
     def writeByte(pbo, num):
-        pbo.write(struct.pack('B', num))
-
+        try:
+            pbo.write(struct.pack('B', num))
+        except Exception as e:
+            print(f"Error writing byte to PBO: {e}")
+            sys.exit(1)
+        
     @staticmethod
     def writeBytes(pbo, num, amount):
-        for x in range(amount):
-            pbo.write(struct.pack('B', num))
+        try:
+            for _ in range(amount):
+                pbo.write(struct.pack('B', num))
+        except Exception as e:
+            print(f"Error writing bytes to PBO: {e}")
+            sys.exit(1)
+
 
 class FileEntry:
-    fileName = ""
-    diskPath = ""
-    packingType = 0
-    data = []
-    originalSize = 0;
-    offset = 0;
-    timestamp = 0;
-    dataSize = 0;
-    dataCompressed = [];
-    
     def __init__(self, name, winPath, entryData, packingType):
         self.fileName = name
-        self.diskPath = winPath;
-        self.data = entryData;
-        self.packingType = packingType;
+        self.diskPath = winPath
+        self.data = entryData
+        self.packingType = packingType
         self.repopulate()
-        #self.originalSize = size
-        #print(self.data)
         
-    #def __init__(self, name, winPath, packingType):
-    #    self.fileName = name
-    #    self.diskPath = winPath;
-    #    self.data = b'';
-    #    self.packingType = packingType;
-
-            
     def repopulate(self):
-        print(len(self.data))
         self.originalSize = len(self.data)
         self.offset = 0
         self.timestamp = int(round(datetime.now().timestamp()))
-        if (self.packingType == 0):
+        if self.packingType == 0:
             self.dataSize = self.originalSize
             self.dataCompressed = b''
-        elif(self.packingType == 1131442803):
-            # not coded atm
-            return
         else:
-            return
+            # Additional error handling could be placed here
+            print("Unsupported packing type.")
+            sys.exit(1)
+
 
 def WritePbo(folder, files):
     print("Writing headers...")
     with open(folder + "-packed.pbo", "wb") as pbo:
-        PackingUtils.writeNull(pbo)
-        PackingUtils.writeStr(pbo, 'sreV')
-        for i in range(0,15):
-            PackingUtils.writeNull(pbo)
-        PackingUtils.writeStr(pbo, "product");
-        PackingUtils.writeStr(pbo, "dayz ugc");
-        PackingUtils.writeStr(pbo, "prefix\0"+ os.path.basename(os.path.normpath(folder)))
-        print("Writing Metadata for File Entries...")
-        PackingUtils.writeNull(pbo)
-        for f in files:
-            print("Debug: {}".format(f.fileName))
-            print("Debug: {}".format(f.packingType))
-            print("Debug: {}".format(f.originalSize))
-            print("Debug: {}".format(f.offset))
-            print("Debug: {}".format(f.timestamp))
-            print("Debug: {}".format(f.dataSize))
-            print()
-            PackingUtils.writeStr(pbo, f.fileName)
-            PackingUtils.writeByte(pbo, f.packingType)
-            PackingUtils.writeUInt(pbo, f.originalSize)
-            PackingUtils.writeByte(pbo, f.offset)
-            PackingUtils.writeUInt(pbo, f.timestamp)
-            PackingUtils.writeUInt(pbo, f.dataSize)
-        PackingUtils.writeStr(pbo, "")
-        PackingUtils.writeNull(pbo)
-        PackingUtils.writeNull(pbo)
-        PackingUtils.writeNull(pbo)
-        PackingUtils.writeNull(pbo)
-        PackingUtils.writeNull(pbo)
-        for f in files:
-            #PackingUtils.write(pbo, f.data)
-            pbo.write(f.data)
-        print("Done...")
+        try:
+            for _ in range(20):
+                PackingUtils.writeNull(pbo)
+            for info in ["sreV", "product", "dayz ugc", "prefix\0" + os.path.basename(os.path.normpath(folder))]:
+                PackingUtils.writeStr(pbo, info)
+            for f in files:
+                PackingUtils.writeStr(pbo, f.fileName)
+                PackingUtils.writeByte(pbo, f.packingType)
+                PackingUtils.writeUInt(pbo, f.originalSize)
+                PackingUtils.writeByte(pbo, f.offset)
+                PackingUtils.writeUInt(pbo, f.timestamp)
+                PackingUtils.writeUInt(pbo, f.dataSize)
+            for _ in range(5):
+                PackingUtils.writeNull(pbo)
+            for f in files:
+                pbo.write(f.data)
+            print("Done...")
+        except Exception as e:
+            print(f"Error while writing PBO: {e}")
+            sys.exit(1)
+
+
+def main():
+    if len(sys.argv) != 2:
+        sys.exit(1)
         
+    folder = sys.argv[1]
+    if not os.path.exists(folder):
+        sys.exit("Source folder not found.")
 
-folder = sys.argv[1]
-if not os.path.exists(folder):
-    exit("Source not found.")
+    allowed_ext = ['.c', '.cpp']
 
-allowed_ext = ['.c', '.cpp']
+    files = []
+    for r, d, f in os.walk(folder):
+        for file in f:
+            if any(ext in file for ext in allowed_ext):
+                try:
+                    with open(os.path.join(r, file), 'rb') as fh:
+                        ba = fh.read()
+                    filename = os.path.join(r, file).replace(folder + "/", "")
+                    files.append(FileEntry(filename, file, ba, 0))
+                except Exception as e:
+                    print(f"Error reading file {file}: {e}")
+                    sys.exit(1)
+    
+    WritePbo(folder, files)
 
-files = []
-workingwith = []
-# r=root, d=directories, f = files
-for r, d, f in os.walk(folder):
-    for file in f:
-        if [ext for ext in allowed_ext if ext in file]:
-            fh = open(os.path.join(r, file), 'rb')
-            ba = fh.read()
-            filename = os.path.join(r, file).replace(folder+ "/", "")
-            files.append(
-                FileEntry(
-                    filename,
-                    file,
-                    ba,
-                    0
-                )
-            )
 
-pprint.pprint(files)
-WritePbo(folder, files)
+if __name__ == "__main__":
+    main()
